@@ -1,6 +1,7 @@
 {
   "name": "bugherd-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "mcpName": "io.github.Berckan/bugherd-mcp",
   "description": "MCP server for BugHerd integration - manage bugs and feedback from Claude",
   "type": "module",
   "main": "dist/index.js",
