@@ -4,10 +4,16 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that 
 
 ## Features
 
-- **List Projects** - View all BugHerd projects accessible to your account
-- **List Tasks** - Browse bugs and feedback with filtering by status, priority, and tags
-- **Get Task Details** - View complete task information including screenshots and element selectors
-- **List Comments** - Read conversation threads on tasks
+**Complete BugHerd API v2 coverage** with 38 tools across all resource types:
+
+- **Organization** - Get account details
+- **Users** - List members, guests, user tasks and projects
+- **Projects** - CRUD operations, manage members and guests
+- **Tasks** - Full task management including feedback, archived, and taskboard views
+- **Columns** - Custom Kanban board management
+- **Comments** - Read and create comments
+- **Attachments** - Manage file attachments
+- **Webhooks** - Configure event notifications
 
 ## Installation
 
@@ -87,69 +93,114 @@ Add to your Claude Desktop config:
 }
 ```
 
-## Available Tools
+## Available Tools (37)
 
-### `bugherd_list_projects`
+### Organization
 
-List all BugHerd projects accessible to the authenticated user.
+| Tool                       | Description                      |
+| -------------------------- | -------------------------------- |
+| `bugherd_get_organization` | Get organization/account details |
 
-**Parameters:** None
+### Users
 
-**Example:**
+| Tool                        | Description                       |
+| --------------------------- | --------------------------------- |
+| `bugherd_list_users`        | List all users (members + guests) |
+| `bugherd_list_members`      | List only team members            |
+| `bugherd_list_guests`       | List only guests/clients          |
+| `bugherd_get_user_tasks`    | Get tasks assigned to a user      |
+| `bugherd_get_user_projects` | Get projects for a user           |
+
+### Projects
+
+| Tool                           | Description                     |
+| ------------------------------ | ------------------------------- |
+| `bugherd_list_projects`        | List all projects               |
+| `bugherd_list_active_projects` | List only active projects       |
+| `bugherd_get_project`          | Get project details             |
+| `bugherd_create_project`       | Create a new project            |
+| `bugherd_update_project`       | Update project settings         |
+| `bugherd_delete_project`       | ⚠️ Delete a project permanently |
+| `bugherd_add_member`           | Add a member to a project       |
+| `bugherd_add_guest`            | Add a guest to a project        |
+
+### Tasks
+
+| Tool                           | Description                                     |
+| ------------------------------ | ----------------------------------------------- |
+| `bugherd_list_tasks`           | List tasks with filters (status, priority, tag) |
+| `bugherd_list_feedback_tasks`  | List unprocessed feedback tasks                 |
+| `bugherd_list_archived_tasks`  | List archived tasks                             |
+| `bugherd_list_taskboard_tasks` | List taskboard tasks                            |
+| `bugherd_get_task`             | Get task details with metadata                  |
+| `bugherd_get_task_global`      | Get task by global ID                           |
+| `bugherd_get_task_by_local_id` | Get task by local ID (#123)                     |
+| `bugherd_create_task`          | Create a new task                               |
+| `bugherd_move_tasks`           | Move tasks between projects                     |
+| `bugherd_update_task`          | Update task status/priority/description         |
+
+### Columns
+
+| Tool                    | Description                            |
+| ----------------------- | -------------------------------------- |
+| `bugherd_list_columns`  | List project columns (Kanban statuses) |
+| `bugherd_get_column`    | Get column details                     |
+| `bugherd_create_column` | Create a new column                    |
+| `bugherd_update_column` | Update column name/position            |
+
+### Comments
+
+| Tool                     | Description             |
+| ------------------------ | ----------------------- |
+| `bugherd_list_comments`  | List comments on a task |
+| `bugherd_create_comment` | Add a comment to a task |
+
+### Attachments
+
+| Tool                        | Description                |
+| --------------------------- | -------------------------- |
+| `bugherd_list_attachments`  | List task attachments      |
+| `bugherd_get_attachment`    | Get attachment details     |
+| `bugherd_create_attachment` | Create attachment from URL |
+| `bugherd_delete_attachment` | ⚠️ Delete an attachment    |
+
+### Webhooks
+
+| Tool                     | Description              |
+| ------------------------ | ------------------------ |
+| `bugherd_list_webhooks`  | List configured webhooks |
+| `bugherd_create_webhook` | Create a webhook         |
+| `bugherd_delete_webhook` | ⚠️ Delete a webhook      |
+
+## Usage Examples
+
+### List projects and tasks
 
 ```
 List my BugHerd projects
-```
-
-### `bugherd_list_tasks`
-
-List tasks for a specific project with optional filters.
-
-**Parameters:**
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `project_id` | number | Yes | The BugHerd project ID |
-| `status` | string | No | Filter: backlog, todo, doing, done, closed |
-| `priority` | string | No | Filter: critical, important, normal, minor |
-| `tag` | string | No | Filter by tag name |
-| `page` | number | No | Page number for pagination |
-
-**Example:**
-
-```
 Show me all critical bugs in project 12345
 ```
 
-### `bugherd_get_task`
-
-Get detailed information about a specific task.
-
-**Parameters:**
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `project_id` | number | Yes | The BugHerd project ID |
-| `task_id` | number | Yes | The task ID |
-
-**Example:**
+### Create and manage tasks
 
 ```
-Get details for task 678 in project 12345
+Create a task in project 12345: "Fix the login button alignment"
+Move task 678 from project 12345 to project 67890
+Update task 678 status to "done"
 ```
 
-### `bugherd_list_comments`
-
-List all comments on a specific task.
-
-**Parameters:**
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `project_id` | number | Yes | The BugHerd project ID |
-| `task_id` | number | Yes | The task ID |
-
-**Example:**
+### Work with comments
 
 ```
 Show comments on task 678 in project 12345
+Add a comment to task 678: "Fixed in latest deploy"
+```
+
+### Manage webhooks
+
+```
+List all webhooks
+Create a webhook for task_create events pointing to https://example.com/webhook
 ```
 
 ## Development

@@ -4,6 +4,20 @@
  */
 
 // ============================================================================
+// Organization Types
+// ============================================================================
+
+export interface BugherdOrganization {
+  id: number;
+  name: string;
+  timezone: string;
+}
+
+export interface BugherdOrganizationResponse {
+  organization: BugherdOrganization;
+}
+
+// ============================================================================
 // User Types
 // ============================================================================
 
@@ -12,6 +26,27 @@ export interface BugherdUser {
   email: string;
   display_name: string;
   avatar_url: string | null;
+}
+
+export interface BugherdMember extends BugherdUser {
+  role?: string;
+  projects?: number[];
+}
+
+export interface BugherdGuest extends BugherdUser {
+  projects?: number[];
+}
+
+export interface BugherdUsersResponse {
+  users: BugherdUser[];
+}
+
+export interface BugherdMembersResponse {
+  members: BugherdMember[];
+}
+
+export interface BugherdGuestsResponse {
+  guests: BugherdGuest[];
 }
 
 // ============================================================================
@@ -73,6 +108,24 @@ export interface BugherdTask {
     selector: string;
     url: string;
   } | null;
+  // Browser/environment metadata (captured when bug was reported)
+  site?: {
+    url?: string;
+  };
+  client_info?: {
+    operating_system?: string;
+    browser?: string;
+    resolution?: string;
+    browser_window_size?: string;
+    color_depth?: string;
+  };
+  // Alternative field names (BugHerd API may use different names)
+  url?: string;
+  os?: string;
+  browser?: string;
+  resolution?: string;
+  window_size?: string;
+  color_depth?: number | string;
   // Computed fields
   status?: BugherdTaskStatus;
   priority?: BugherdTaskPriority;
@@ -145,4 +198,68 @@ export function getPriorityName(
 ): BugherdTaskPriority {
   if (priorityId === null) return "not set";
   return PRIORITY_MAP[priorityId] ?? "not set";
+}
+
+// ============================================================================
+// Attachment Types
+// ============================================================================
+
+export interface BugherdAttachment {
+  id: number;
+  file_name: string;
+  file_size: number;
+  url: string;
+  created_at: string;
+}
+
+export interface BugherdAttachmentsResponse {
+  attachments: BugherdAttachment[];
+}
+
+export interface BugherdAttachmentResponse {
+  attachment: BugherdAttachment;
+}
+
+// ============================================================================
+// Webhook Types
+// ============================================================================
+
+export type BugherdWebhookEvent =
+  | "project_create"
+  | "task_create"
+  | "task_update"
+  | "comment"
+  | "task_destroy";
+
+export interface BugherdWebhook {
+  id: number;
+  event: BugherdWebhookEvent;
+  target_url: string;
+  project_id: number | null;
+}
+
+export interface BugherdWebhooksResponse {
+  webhooks: BugherdWebhook[];
+}
+
+export interface BugherdWebhookResponse {
+  webhook: BugherdWebhook;
+}
+
+// ============================================================================
+// Column Types (extended)
+// ============================================================================
+
+export interface BugherdColumn {
+  id: number;
+  name: string;
+  position: number;
+}
+
+export interface BugherdColumnsResponse {
+  columns: BugherdColumn[];
+}
+
+export interface BugherdColumnResponse {
+  column: BugherdColumn;
 }
