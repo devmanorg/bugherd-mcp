@@ -11,7 +11,9 @@
   "scripts": {
     "build": "tsc",
     "dev": "bun run src/index.ts",
+    "dev:http": "PORT=3003 bun run src/index.ts",
     "start": "node dist/index.js",
+    "start:http": "PORT=3003 node dist/index.js",
     "inspector": "npx @modelcontextprotocol/inspector bun run src/index.ts"
   },
   "keywords": [

@@ -11,11 +11,13 @@
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod/v4";
+import { createServer, IncomingMessage, ServerResponse } from "http";
 
 import {
   // Organization
@@ -1870,16 +1872,95 @@ ${pageUrl}
 });
 
 // ============================================================================
-// Start Server
+// Start Server (HTTP or stdio based on PORT env var)
 // ============================================================================
 
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("BugHerd MCP Server started");
-}
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : null;
 
-main().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
-});
+if (PORT) {
+  // HTTP mode - shared server for multiple Claude sessions
+  const sessions = new Map<string, SSEServerTransport>();
+
+  const httpServer = createServer(
+    async (req: IncomingMessage, res: ServerResponse) => {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+      if (req.method === "OPTIONS") {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+
+      const url = new URL(req.url || "/", `http://localhost:${PORT}`);
+
+      if (url.pathname === "/health") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ status: "ok", sessions: sessions.size }));
+        return;
+      }
+
+      if (url.pathname === "/sse") {
+        const transport = new SSEServerTransport("/message", res);
+        const sessionId = crypto.randomUUID();
+        sessions.set(sessionId, transport);
+
+        res.on("close", () => {
+          sessions.delete(sessionId);
+        });
+
+        await server.connect(transport);
+        return;
+      }
+
+      if (url.pathname === "/message" && req.method === "POST") {
+        const sessionId = url.searchParams.get("sessionId");
+        if (!sessionId) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Missing sessionId" }));
+          return;
+        }
+
+        const transport = sessions.get(sessionId);
+        if (!transport) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Session not found" }));
+          return;
+        }
+
+        let body = "";
+        req.on("data", (chunk) => (body += chunk));
+        req.on("end", async () => {
+          try {
+            await transport.handlePostMessage(req, res, body);
+          } catch {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Internal server error" }));
+          }
+        });
+        return;
+      }
+
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Not found" }));
+    },
+  );
+
+  httpServer.listen(PORT, () => {
+    console.error(`BugHerd MCP Server running on http://localhost:${PORT}`);
+    console.error(`  SSE endpoint: http://localhost:${PORT}/sse`);
+  });
+} else {
+  // stdio mode - one process per Claude session (default)
+  const transport = new StdioServerTransport();
+  server
+    .connect(transport)
+    .then(() => {
+      console.error("BugHerd MCP Server running on stdio");
+    })
+    .catch((error) => {
+      console.error("Fatal error:", error);
+      process.exit(1);
+    });
+}
