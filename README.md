@@ -219,3 +219,7 @@ cp .env.example .env
 # edit .env then:
 docker compose up --build
 ```
+
+## Acknowledgements
+
+This project was originally based on `https://github.com/Berckan/bugherd-mcp` and has since been significantly reworked and extended. It is now maintained as an independent project. Thanks to the original author for the initial implementation.
