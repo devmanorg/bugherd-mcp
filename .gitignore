@@ -35,5 +35,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # AI assistant configs
 .claude/
-.cursor/
 CLAUDE.md
+
+# local tooling
+.mcp-cmd.json
