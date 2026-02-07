@@ -11,6 +11,15 @@ import { createComment, getColumnMappings, getTaskByLocalId, listArchivedTasks, 
 import { getPriorityName } from "./types/bugherd.js";
 import { loadEnvOrExit, truncate } from "./config.js";
 const env = loadEnvOrExit();
+function applyAgentSignature(text) {
+    if (!env.agentSignature)
+        return text;
+    const trimmed = text.trimEnd();
+    const sig = env.agentSignature.trim();
+    if (trimmed.endsWith(sig))
+        return text;
+    return trimmed + env.agentSignatureSeparator + env.agentSignature;
+}
 function compareDateString(a, b) {
     // ISO timestamps compare lexicographically too, but Date.parse is safer
     return Date.parse(a) - Date.parse(b);
@@ -647,7 +656,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 const taskResult = await getTaskByLocalId(env.projectId, parsed.local_task_id);
                 const task = taskResult.task;
                 const created = await createComment(env.projectId, task.id, {
-                    text: parsed.text,
+                    text: applyAgentSignature(parsed.text),
                     user_id: env.botUserId,
                 });
                 return {

@@ -43,6 +43,8 @@ Optional:
 - `BUGHERD_PAGE_SIZE`
 - `BUGHERD_DESCRIPTION_MAX_CHARS`
 - `BUGHERD_COMMENT_MAX_CHARS`
+- `BUGHERD_AGENT_SIGNATURE`
+- `BUGHERD_AGENT_SIGNATURE_SEPARATOR`
 - `BUGHERD_ACTIVE_COLUMN_IDS` (comma-separated ids)
 
 All env vars are validated locally at startup (see `src/config.ts`).
