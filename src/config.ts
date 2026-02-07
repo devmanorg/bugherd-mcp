@@ -56,6 +56,17 @@ export interface BugherdEnv {
   activeColumnIds: number[] | null;
 }
 
+function unescapeEnvString(value: string): string {
+  // Support configs that cannot embed real newlines.
+  // Example: "\\n\\n---\\n" -> "\n\n---\n"
+  // Decode common escape sequences ("\\n", "\\r", "\\t", "\\\\").
+  return value
+    .replaceAll(/\\r/g, "\r")
+    .replaceAll(/\\n/g, "\n")
+    .replaceAll(/\\t/g, "\t")
+    .replaceAll(/\\\\/g, "\\");
+}
+
 export function loadEnvOrExit(): BugherdEnv {
   const parsed = EnvSchema.safeParse(process.env);
   if (!parsed.success) {
@@ -69,8 +80,9 @@ export function loadEnvOrExit(): BugherdEnv {
   const agentSignature = parsed.data.BUGHERD_AGENT_SIGNATURE?.trim()
     ? parsed.data.BUGHERD_AGENT_SIGNATURE
     : null;
-  const agentSignatureSeparator =
-    parsed.data.BUGHERD_AGENT_SIGNATURE_SEPARATOR ?? "\n\n---\n";
+  const agentSignatureSeparator = unescapeEnvString(
+    parsed.data.BUGHERD_AGENT_SIGNATURE_SEPARATOR ?? "\n\n---\n",
+  );
 
   let activeColumnIds: number[] | null = null;
   if (parsed.data.BUGHERD_ACTIVE_COLUMN_IDS?.trim()) {

@@ -85,7 +85,7 @@ npm run build
         "BUGHERD_PAGE_SIZE": "30",
         "BUGHERD_DESCRIPTION_MAX_CHARS": "4000",
         "BUGHERD_AGENT_SIGNATURE": "",
-        "BUGHERD_AGENT_SIGNATURE_SEPARATOR": "\\n\\n---\\n",
+        "BUGHERD_AGENT_SIGNATURE_SEPARATOR": "\\n\\n---\\n", // "\\n" sequences are supported
         "BUGHERD_ACTIVE_COLUMN_IDS": ""
       }
     }
