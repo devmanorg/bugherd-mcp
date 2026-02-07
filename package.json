@@ -41,7 +41,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/berckan/bugherd-mcp"
+    "url": "https://github.com/devmanorg/bugherd-mcp"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.2",
