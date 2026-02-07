@@ -186,3 +186,39 @@ HTTP/SSE mode (handy for debugging):
 npm run dev:mcp:admin:http
 npm run dev:mcp:project-worker:http
 ```
+
+## Docker
+
+### Build image
+
+```bash
+docker build -t bugherd-mcp:local .
+```
+
+### Run admin server (HTTP/SSE)
+
+```bash
+docker run --rm -p 3003:3003 \
+  -e PORT=3003 \
+  -e BUGHERD_API_KEY=your-api-key \
+  bugherd-mcp:local
+```
+
+### Run project worker (HTTP/SSE)
+
+```bash
+docker run --rm -p 3004:3004 \
+  -e PORT=3004 \
+  -e BUGHERD_API_KEY=your-api-key \
+  -e BUGHERD_PROJECT_ID=123 \
+  -e BUGHERD_BOT_USER_ID=456 \
+  --entrypoint node bugherd-mcp:local dist/bugherd-project-worker-mcp.js
+```
+
+### Docker Compose (recommended for local dev)
+
+```bash
+cp .env.example .env
+# edit .env then:
+docker compose up --build
+```
