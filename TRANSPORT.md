@@ -79,7 +79,7 @@ If you need to revert to stdio-only mode:
      "command": "node",
      "args": ["/Users/berckan/Dev/Personal/bugherd-mcp/dist/index.js"],
      "env": {
-       "BUGHERD_API_KEY": "hvb7fsgautxrgaai3ccwrg"
+       "BUGHERD_API_KEY": "your_key"
      }
    }
    ```
