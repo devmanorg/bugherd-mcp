@@ -9,7 +9,6 @@
     "dist",
     "server.json",
     "README.md",
-    "TRANSPORT.md",
     "LICENSE"
   ],
   "bin": {

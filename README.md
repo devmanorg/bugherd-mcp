@@ -10,7 +10,7 @@ This repo ships two entrypoints:
 - Transports: stdio (default) and HTTP/SSE (shared mode)
 - Includes destructive operations (delete project/attachment/webhook)
 
-Transport details: see `TRANSPORT.md`.
+Transport details: see below (stdio vs HTTP/SSE).
 
 ## Project worker server: `bugherd-project-worker-mcp`
 
@@ -155,6 +155,15 @@ Notes:
 
 - `BUGHERD_ACTIVE_COLUMN_IDS` is an optional comma-separated hint/filter (e.g. `"10,11,12"`).
 - `tasks_list.sort` is required. Sorting is applied within the fetched page.
+
+## Transport
+
+Both servers support:
+
+- **stdio** (default): no `PORT` env var; one process per client session
+- **HTTP/SSE**: set `PORT`; one long-lived server can serve multiple sessions
+
+Health endpoint (HTTP mode): `GET /health`
 
 ## Development
 
