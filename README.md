@@ -85,41 +85,32 @@ npm i -g bugherd-mcp
 BUGHERD_API_KEY=your-api-key bugherd-admin-mcp
 ```
 
-## Configuration
+## Configuration (Opencode)
 
-Recommended: run via `npx` so you don't need local paths.
+Recommended: configure Opencode to launch the server via `npx`.
 
 ### Admin server (stdio)
 
-From npm:
+`~/.opencode.json` (or project-local `./.opencode.json`):
 
-```json
+```jsonc
 {
-  "mcpServers": {
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
     "bugherd": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-p", "bugherd-mcp", "bugherd-admin-mcp"],
-      "env": {
-        "BUGHERD_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
+      "type": "local",
+      "command": [
+        // Local build option:
+        // "node", "/absolute/path/to/bugherd-mcp/dist/bugherd-admin-mcp.js",
 
-Directly from GitHub:
-
-```json
-{
-  "mcpServers": {
-    "bugherd": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-p", "git+https://github.com/devmanorg/bugherd-mcp.git", "bugherd-admin-mcp"],
-      "env": {
-        "BUGHERD_API_KEY": "your-api-key"
-      }
+        "npx",
+        "-p",
+        "git+https://github.com/devmanorg/bugherd-mcp.git",
+        "bugherd-admin-mcp",
+      ],
+      "environment": {
+        "BUGHERD_API_KEY": "your-api-key",
+      },
     }
   }
 }
@@ -127,29 +118,35 @@ Directly from GitHub:
 
 ### Project worker server (stdio)
 
-```json
+```jsonc
 {
-  "mcpServers": {
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
     "bugherd": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-p", "bugherd-mcp", "bugherd-project-worker-mcp"],
-      "env": {
+      "type": "local",
+      "command": [
+        // Local build option:
+        // "node", "/absolute/path/to/bugherd-mcp/dist/bugherd-project-worker-mcp.js",
+
+        "npx",
+        "-p",
+        "git+https://github.com/devmanorg/bugherd-mcp.git",
+        "bugherd-project-worker-mcp",
+      ],
+      "environment": {
         "BUGHERD_API_KEY": "your-api-key",
-        "BUGHERD_PROJECT_ID": "your-project-id-here",
-        "BUGHERD_BOT_USER_ID": "your-bot-user-id-here",
+        "BUGHERD_PROJECT_ID": "505337",
+        "BUGHERD_BOT_USER_ID": "584998",
         "BUGHERD_PAGE_SIZE": "30",
         "BUGHERD_DESCRIPTION_MAX_CHARS": "4000",
-        "BUGHERD_AGENT_SIGNATURE": "",
+        "BUGHERD_AGENT_SIGNATURE": "🤖 AI-агент",
         "BUGHERD_AGENT_SIGNATURE_SEPARATOR": "\\n\\n---\\n",
         "BUGHERD_ACTIVE_COLUMN_IDS": ""
-      }
+      },
     }
   }
 }
 ```
-
-Alternative (local build): set `command` to `node` and point `args` at `dist/*.js`.
 
 Notes:
 
