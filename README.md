@@ -35,9 +35,9 @@ cd bugherd-mcp
 2. Install dependencies:
 
 ```bash
-bun install
+bun install --frozen-lockfile
 # or
-npm install
+npm ci
 ```
 
 3. Build the server:
