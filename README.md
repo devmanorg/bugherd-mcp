@@ -25,11 +25,11 @@ Designed for an AI client that operates inside a single project.
 ### Project worker tools
 
 - `columns_list` — list project columns with `id` and `name`
-- `tasks_list` — list tasks (max 30 per call) + pagination cursors
+- `tasks_list` — list tasks (max `BUGHERD_PAGE_SIZE` per call) + pagination cursors
 - `task_get` — task details by `local_task_id` (description chunk + `description_next_cursor`)
 - `task_description_more` — aux: read long description in chunks (`next_cursor`)
 - `task_move_status` — move task to a column by `to_column_id`
-- `comments_list` — list comments (max 30 per call) + pagination cursors
+- `comments_list` — list comments (max `BUGHERD_PAGE_SIZE` per call) + pagination cursors
 - `comment_text_more` — aux: read long comment text in chunks (`next_cursor`)
 - `comment_add` — add a comment as `BUGHERD_BOT_USER_ID`
 
@@ -83,6 +83,7 @@ npm run build
         "BUGHERD_API_KEY": "your-api-key",
         "BUGHERD_PROJECT_ID": "your-project-id-here",
         "BUGHERD_BOT_USER_ID": "your-bot-user-id-here",
+        "BUGHERD_PAGE_SIZE": "30",
         "BUGHERD_DESCRIPTION_MAX_CHARS": "4000",
         "BUGHERD_COMMENT_MAX_CHARS": "2000",
         "BUGHERD_ACTIVE_COLUMN_IDS": ""

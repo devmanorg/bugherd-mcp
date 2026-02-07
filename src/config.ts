@@ -3,7 +3,7 @@ import { z } from "zod/v4";
 const EnvSchema = z.object({
   BUGHERD_API_KEY: z.string().min(1, "BUGHERD_API_KEY is required"),
 
-  // Restricted server settings
+  // Project worker server settings
   BUGHERD_PROJECT_ID: z.coerce
     .number()
     .int("BUGHERD_PROJECT_ID must be an integer")
@@ -13,7 +13,14 @@ const EnvSchema = z.object({
     .int("BUGHERD_BOT_USER_ID must be an integer")
     .positive("BUGHERD_BOT_USER_ID must be > 0"),
 
-  // Output limits (local validation only)
+  // Pagination / output limits (local validation only)
+  BUGHERD_PAGE_SIZE: z
+    .coerce
+    .number()
+    .int("BUGHERD_PAGE_SIZE must be an integer")
+    .positive("BUGHERD_PAGE_SIZE must be > 0")
+    .optional(),
+
   BUGHERD_DESCRIPTION_MAX_CHARS: z
     .coerce
     .number()
@@ -44,6 +51,7 @@ export interface BugherdEnv {
   apiKey: string;
   projectId: number;
   botUserId: number;
+  pageSize: number;
   descriptionMaxChars: number;
   commentMaxChars: number;
   activeColumnIds: number[] | null;
@@ -57,6 +65,7 @@ export function loadEnvOrExit(): BugherdEnv {
     process.exit(1);
   }
 
+  const pageSize = parsed.data.BUGHERD_PAGE_SIZE ?? 30;
   const descriptionMaxChars = parsed.data.BUGHERD_DESCRIPTION_MAX_CHARS ?? 4000;
   const commentMaxChars = parsed.data.BUGHERD_COMMENT_MAX_CHARS ?? 2000;
 
@@ -85,6 +94,7 @@ export function loadEnvOrExit(): BugherdEnv {
     apiKey: parsed.data.BUGHERD_API_KEY,
     projectId: parsed.data.BUGHERD_PROJECT_ID,
     botUserId: parsed.data.BUGHERD_BOT_USER_ID,
+    pageSize,
     descriptionMaxChars,
     commentMaxChars,
     activeColumnIds,

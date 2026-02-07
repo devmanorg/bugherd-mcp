@@ -53,6 +53,9 @@ function encodePageCursor(value) {
     return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 function decodePageCursor(cursor) {
+    if (typeof cursor === "number") {
+        return { page: cursor };
+    }
     const raw = Buffer.from(cursor, "base64url").toString("utf8");
     const parsed = JSON.parse(raw);
     return z.object({ page: z.number().int().positive() }).parse(parsed);
@@ -61,6 +64,9 @@ function encodeTextCursor(value) {
     return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 function decodeTextCursor(cursor) {
+    if (typeof cursor === "number") {
+        return { offset: cursor };
+    }
     const raw = Buffer.from(cursor, "base64url").toString("utf8");
     const parsed = JSON.parse(raw);
     return z.object({ offset: z.number().int().nonnegative() }).parse(parsed);
@@ -73,6 +79,7 @@ function textChunk(text, offset, maxChars) {
     return {
         chunk,
         offset: start,
+        nextOffset,
         nextCursor: nextOffset === null ? null : encodeTextCursor({ offset: nextOffset }),
     };
 }
@@ -116,7 +123,7 @@ const ListTasksSchema = z.object({
     ])
         .describe("Sort mode applied within the page"),
     page: z.number().int().positive().optional().describe("1-based page"),
-    cursor: PageCursorSchema.optional(),
+    cursor: z.union([PageCursorSchema, z.number().int().positive()]).optional(),
     status: z
         .string()
         .optional()
@@ -132,7 +139,7 @@ const LocalTaskSchema = z.object({
 });
 const TaskDescriptionMoreSchema = z.object({
     local_task_id: z.number().int().positive().describe("Local task id (#123)"),
-    cursor: TextCursorSchema.optional(),
+    cursor: z.union([TextCursorSchema, z.number().int().nonnegative()]).optional(),
 });
 const MoveTaskSchema = z.object({
     local_task_id: z.number().int().positive().describe("Local task id (#123)"),
@@ -145,12 +152,12 @@ const AddCommentSchema = z.object({
 const ListCommentsSchema = z.object({
     local_task_id: z.number().int().positive().describe("Local task id (#123)"),
     page: z.number().int().positive().optional().describe("1-based page"),
-    cursor: PageCursorSchema.optional(),
+    cursor: z.union([PageCursorSchema, z.number().int().positive()]).optional(),
 });
 const CommentTextMoreSchema = z.object({
     local_task_id: z.number().int().positive().describe("Local task id (#123)"),
     comment_id: z.number().int().positive().describe("Comment id"),
-    cursor: TextCursorSchema.optional(),
+    cursor: z.union([TextCursorSchema, z.number().int().nonnegative()]).optional(),
 });
 // Tool definitions
 const TOOLS = [
@@ -161,7 +168,7 @@ const TOOLS = [
     },
     {
         name: "tasks_list",
-        description: "List tasks for the configured project. Returns up to 30 items with pagination.",
+        description: "List tasks for the configured project. Returns up to page_size items with pagination.",
         inputSchema: {
             type: "object",
             properties: {
@@ -180,7 +187,7 @@ const TOOLS = [
                     description: "Sort mode applied within the page",
                 },
                 page: { type: "number", description: "1-based page" },
-                cursor: { type: "string", description: "Opaque cursor from previous response" },
+                cursor: { type: ["string", "number"], description: "Opaque cursor from previous response (or numeric page)" },
                 status: { type: "string", description: "Optional status filter by column name" },
                 tag: { type: "string", description: "Optional tag filter" },
                 priority: {
@@ -208,7 +215,7 @@ const TOOLS = [
             type: "object",
             properties: {
                 local_task_id: { type: "number" },
-                cursor: { type: "string", description: "Opaque cursor from previous chunk" },
+                cursor: { type: ["string", "number"], description: "Opaque cursor from previous chunk (or numeric offset)" },
             },
             required: ["local_task_id"],
         },
@@ -227,13 +234,13 @@ const TOOLS = [
     },
     {
         name: "comments_list",
-        description: "List comments for a task. Returns up to 30 items.",
+        description: "List comments for a task. Returns up to page_size items.",
         inputSchema: {
             type: "object",
             properties: {
                 local_task_id: { type: "number" },
                 page: { type: "number" },
-                cursor: { type: "string" },
+                cursor: { type: ["string", "number"], description: "Opaque cursor from previous response (or numeric page)" },
             },
             required: ["local_task_id"],
         },
@@ -246,7 +253,7 @@ const TOOLS = [
             properties: {
                 local_task_id: { type: "number" },
                 comment_id: { type: "number" },
-                cursor: { type: "string", description: "Opaque cursor from previous chunk" },
+                cursor: { type: ["string", "number"], description: "Opaque cursor from previous chunk (or numeric offset)" },
             },
             required: ["local_task_id", "comment_id"],
         },
@@ -373,7 +380,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     tasks = tasks.filter((t) => typeof t.status_id === "number" ? allowed.has(t.status_id) : true);
                 }
                 tasks = sortTasks(tasks, parsed.sort);
-                const limited = tasks.slice(0, 30);
+                const limited = tasks.slice(0, env.pageSize);
                 const items = limited.map((t) => {
                     const statusName = typeof t.status === "string"
                         ? t.status
@@ -408,10 +415,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                             type: "text",
                             text: `## Tasks (${limited.length}/${total})\n` +
                                 `${headerParts.join(" | ")}\n` +
+                                `page_size: ${env.pageSize}\n` +
                                 `cursor: ${cursor}\n` +
+                                (nextPage ? `next_page: ${nextPage}\n` : "") +
+                                (prevPage ? `prev_page: ${prevPage}\n` : "") +
                                 (nextCursor ? `next_cursor: ${nextCursor}\n` : "") +
                                 (prevCursor ? `prev_cursor: ${prevCursor}\n` : "") +
-                                `\n${items.join("\n")}`,
+                                `\n${items.join("\n")}`, 
                         },
                     ],
                 };
@@ -469,9 +479,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                         ? `https://www.bugherd.com/projects/${task.project_id}/tasks/${task.local_task_id}`
                         : null);
                 const previewMaxChars = Math.min(env.descriptionMaxChars, 600);
-                const { chunk: descChunk, nextCursor: descNextCursor } = textChunk(task.description, 0, previewMaxChars);
+                const { chunk: descChunk, nextOffset: descNextOffset, nextCursor: descNextCursor } = textChunk(task.description, 0, previewMaxChars);
                 const descHint = descNextCursor
-                    ? `\n\ndescription_next_cursor: ${descNextCursor}\nUse task_description_more with cursor to read more.`
+                    ? `\n\ndescription_next_offset: ${descNextOffset}\ndescription_next_cursor: ${descNextCursor}\nUse task_description_more with cursor (or offset) to read more.`
                     : "";
                 const techLines = [
                     `page_url: ${pageUrl}`,
@@ -509,13 +519,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 const result = await getTaskByLocalId(env.projectId, parsed.local_task_id);
                 const task = result.task;
                 const offset = parsed.cursor ? decodeTextCursor(parsed.cursor).offset : 0;
-                const { chunk, nextCursor } = textChunk(task.description, offset, env.descriptionMaxChars);
+                const { chunk, nextOffset, nextCursor } = textChunk(task.description, offset, env.descriptionMaxChars);
                 return {
                     content: [
                         {
                             type: "text",
                             text: `## Task #${task.local_task_id} Description (chunk)\n` +
                                 `offset: ${offset}\n` +
+                                (nextOffset !== null ? `next_offset: ${nextOffset}\n` : "") +
                                 (nextCursor ? `next_cursor: ${nextCursor}\n` : "") +
                                 `\n${chunk}`,
                         },
@@ -565,7 +576,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 const result = await listComments(env.projectId, task.id);
                 const comments = result.comments;
                 const total = result.meta?.count ?? comments.length;
-                const pageSize = 30;
+                const pageSize = env.pageSize;
                 const start = (page - 1) * pageSize;
                 const end = start + pageSize;
                 const slice = comments.slice(start, end);
@@ -585,10 +596,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                             type: "text",
                             text: `## Comments on Task #${task.local_task_id} (${slice.length}/${total})\n` +
                                 `page: ${page}\n` +
+                                `page_size: ${pageSize}\n` +
                                 `cursor: ${cursor}\n` +
+                                (nextPage ? `next_page: ${nextPage}\n` : "") +
+                                (prevPage ? `prev_page: ${prevPage}\n` : "") +
                                 (nextCursor ? `next_cursor: ${nextCursor}\n` : "") +
                                 (prevCursor ? `prev_cursor: ${prevCursor}\n` : "") +
-                                `\n${items.join("\n")}`,
+                                `\n${items.join("\n")}`, 
                         },
                     ],
                 };
@@ -612,7 +626,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 }
                 const author = comment.user?.display_name ?? `user:${comment.user_id}`;
                 const offset = parsed.cursor ? decodeTextCursor(parsed.cursor).offset : 0;
-                const { chunk, nextCursor } = textChunk(comment.text, offset, env.commentMaxChars);
+                const { chunk, nextOffset, nextCursor } = textChunk(comment.text, offset, env.commentMaxChars);
                 return {
                     content: [
                         {
@@ -621,6 +635,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                                 `author: ${author}\n` +
                                 `created: ${comment.created_at}\n` +
                                 `offset: ${offset}\n` +
+                                (nextOffset !== null ? `next_offset: ${nextOffset}\n` : "") +
                                 (nextCursor ? `next_cursor: ${nextCursor}\n` : "") +
                                 `\n${chunk}`,
                         },

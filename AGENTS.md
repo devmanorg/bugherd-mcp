@@ -40,6 +40,7 @@ Required:
 
 Optional:
 
+- `BUGHERD_PAGE_SIZE`
 - `BUGHERD_DESCRIPTION_MAX_CHARS`
 - `BUGHERD_COMMENT_MAX_CHARS`
 - `BUGHERD_ACTIVE_COLUMN_IDS` (comma-separated ids)
@@ -61,7 +62,8 @@ mcp-cmd start bugherd-project-worker node dist/bugherd-project-worker-mcp.js \
   --cwd /path/to/bugherd-mcp \
   --env BUGHERD_API_KEY=$BUGHERD_API_KEY \
   --env BUGHERD_PROJECT_ID=$BUGHERD_PROJECT_ID \
-  --env BUGHERD_BOT_USER_ID=$BUGHERD_BOT_USER_ID
+  --env BUGHERD_BOT_USER_ID=$BUGHERD_BOT_USER_ID \
+  --env BUGHERD_PAGE_SIZE=${BUGHERD_PAGE_SIZE:-30}
 ```
 
 ### Introspect tools
