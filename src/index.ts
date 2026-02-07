@@ -965,7 +965,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text" as const,
-              text: `## Organization\n\n**Name:** ${org.name}\n**ID:** ${org.id}\n**Timezone:** ${org.timezone}`,
+              text: `## Organization\n\n**Name:** ${org.name}\n**ID:** ${org.id}\n**Timezone:** ${org.timezone ?? "Not available"}`,
             },
           ],
         };
@@ -997,7 +997,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "bugherd_list_members": {
         const result = await listMembers();
-        const members = result.members;
+        const members = result.users;
         if (members.length === 0) {
           return {
             content: [{ type: "text" as const, text: "No members found." }],
@@ -1018,7 +1018,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "bugherd_list_guests": {
         const result = await listGuests();
-        const guests = result.guests;
+        const guests = result.users;
         if (guests.length === 0) {
           return {
             content: [{ type: "text" as const, text: "No guests found." }],
@@ -1044,26 +1044,71 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           priority: parsed.priority,
           page: parsed.page,
         };
-        const result = await getUserTasks(parsed.user_id, options);
-        const tasks = result.tasks;
-        if (tasks.length === 0) {
+
+        const groups = await getUserTasks(parsed.user_id, options);
+
+        const parseJson = <T,>(value?: string | null): T | null => {
+          if (!value) return null;
+          try {
+            return JSON.parse(value) as T;
+          } catch {
+            return null;
+          }
+        };
+
+        const projectSections = groups
+          .map((g) => {
+            const tasks = g.user_tasks ?? [];
+            if (tasks.length === 0) return null;
+
+            const lines = tasks.map((t) => {
+              const selectorInfo = parseJson<{ path?: string }>(t.selector_info);
+              const browserInfo = parseJson<{
+                os?: string;
+                browser?: string;
+                resolution?: string;
+                window_size?: string;
+              }>(t.browser_info);
+
+              let fullUrl: string | null = null;
+              if (t.site && t.url) {
+                try {
+                  fullUrl = new URL(t.url, t.site).toString();
+                } catch {
+                  fullUrl = null;
+                }
+              }
+
+              const url = fullUrl ?? t.url ?? "Not available";
+              const selector = selectorInfo?.path ?? "Not available";
+              const os = browserInfo?.os ?? "Not available";
+              const browser = browserInfo?.browser ?? "Not available";
+
+              const description =
+                t.description.length > 80
+                  ? t.description.substring(0, 80) + "..."
+                  : t.description;
+
+              return `- Task #${t.local_task_id} (ID: ${t.id}): ${description}\n  URL: ${url}\n  Selector: ${selector}\n  OS: ${os}\n  Browser: ${browser}`;
+            });
+
+            return `### Project: ${g.name} (ID: ${g.id})\n\n${lines.join("\n")}`;
+          })
+          .filter((s): s is string => Boolean(s));
+
+        if (projectSections.length === 0) {
           return {
             content: [
               { type: "text" as const, text: "No tasks found for this user." },
             ],
           };
         }
-        const taskList = tasks
-          .map(
-            (t) =>
-              `- Task #${t.local_task_id} (ID: ${t.id}): ${t.description.substring(0, 80)}...`,
-          )
-          .join("\n");
+
         return {
           content: [
             {
               type: "text" as const,
-              text: `## Tasks for User ${parsed.user_id}\n\n${taskList}`,
+              text: `## Tasks for User ${parsed.user_id}\n\n${projectSections.join("\n\n")}`,
             },
           ],
         };
@@ -1282,28 +1327,48 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
         const taskListItems = await Promise.all(
           tasks.map(async (t) => {
-            const status = await getStatusNameForProject(
-              parsed.project_id,
-              t.status_id,
-            );
-            const priority = getPriorityName(t.priority_id);
+            const statusName =
+              typeof t.status === "string"
+                ? t.status
+                : t.status_id !== null
+                  ? await getStatusNameForProject(parsed.project_id, t.status_id)
+                  : "feedback";
+
+            const priorityName =
+              typeof t.priority === "string"
+                ? t.priority
+                : getPriorityName(t.priority_id);
+
             const tags =
               t.tag_names.length > 0 ? t.tag_names.join(", ") : "none";
             const description =
               t.description.length > 100
                 ? t.description.substring(0, 100) + "..."
                 : t.description;
+
+            const viewLink =
+              t.admin_link ||
+              (t.project_id && t.local_task_id
+                ? `https://www.bugherd.com/projects/${t.project_id}/tasks/${t.local_task_id}`
+                : "");
+
+            const viewLine = viewLink ? `- [View in BugHerd](${viewLink})` : "";
+
             return `### Task #${t.local_task_id} (ID: ${t.id})
-- **Status:** ${status}
-- **Priority:** ${priority}
+- **Status:** ${statusName}
+- **Priority:** ${priorityName}
 - **Tags:** ${tags}
 - **Created:** ${t.created_at}
 - **Description:** ${description}
-- [View in BugHerd](${t.admin_link})`;
+${viewLine}`.trim();
           }),
         );
         const taskList = taskListItems.join("\n\n");
-        const pagination = `Page ${meta.current_page} of ${meta.total_pages} (${meta.count} total tasks)`;
+        const totalCount = meta?.count ?? tasks.length;
+        const pagination =
+          meta?.current_page && meta?.total_pages
+            ? `Page ${meta.current_page} of ${meta.total_pages} (${totalCount} total tasks)`
+            : `${totalCount} total tasks`;
         return {
           content: [
             {
@@ -1399,29 +1464,61 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const parsed = GetTaskSchema.parse(args);
         const result = await getTask(parsed.project_id, parsed.task_id);
         const task = result.task;
-        const status = await getStatusNameForProject(
-          parsed.project_id,
-          task.status_id,
-        );
+        const status =
+          task.status_id !== null
+            ? await getStatusNameForProject(parsed.project_id, task.status_id)
+            : typeof task.status === "string"
+              ? task.status
+              : "feedback";
         const priority = getPriorityName(task.priority_id);
         const tags =
           task.tag_names.length > 0 ? task.tag_names.join(", ") : "none";
+        const siteUrl =
+          typeof task.site === "string" ? task.site : task.site?.url;
+
         const pageUrl =
           task.selector_info?.url ||
-          task.site?.url ||
-          task.url ||
+          (siteUrl && task.url
+            ? new URL(task.url, siteUrl).toString()
+            : siteUrl || task.url || "Not available");
+
+        const selector =
+          task.selector_info?.path ||
+          task.selector_info?.selector ||
           "Not available";
-        const selector = task.selector_info?.selector || "Not available";
+
         const clientInfo = task.client_info || {};
-        const os = clientInfo.operating_system || task.os || "Not available";
-        const browser = clientInfo.browser || task.browser || "Not available";
+        const os =
+          task.requester_os ||
+          clientInfo.operating_system ||
+          task.os ||
+          "Not available";
+        const browser =
+          task.requester_browser ||
+          clientInfo.browser ||
+          task.browser ||
+          "Not available";
         const resolution =
-          clientInfo.resolution || task.resolution || "Not available";
+          task.requester_resolution ||
+          clientInfo.resolution ||
+          task.resolution ||
+          "Not available";
         const windowSize =
-          clientInfo.browser_window_size || task.window_size || "Not available";
+          task.requester_browser_size ||
+          clientInfo.browser_window_size ||
+          task.window_size ||
+          "Not available";
         const colorDepth =
           clientInfo.color_depth ||
           (task.color_depth ? `${task.color_depth} bit` : "Not available");
+
+        const assignedTo =
+          task.assigned_to?.display_name ||
+          task.assigned_to?.email ||
+          (typeof task.assigned_to_id === "number"
+            ? task.assigned_to_id
+            : "Unassigned");
+
         const output = `## Task #${task.local_task_id}
 
 **Status:** ${status}
@@ -1430,13 +1527,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 **Created:** ${task.created_at}
 **Updated:** ${task.updated_at}
 **Requester:** ${task.requester_email}
-**Assigned To:** ${task.assigned_to_id ?? "Unassigned"}
+**Assigned To:** ${assignedTo}
 
 ### Description
 ${task.description}
 
 ### Screenshot
-${task.screenshot ?? "No screenshot available"}
+ ${task.screenshot_url ?? task.screenshot ?? "No screenshot available"}
+
 
 ### Page URL
 ${pageUrl}
@@ -1542,10 +1640,12 @@ ${pageUrl}
           options,
         );
         const task = result.task;
-        const status = await getStatusNameForProject(
-          parsed.project_id,
-          task.status_id,
-        );
+        const status =
+          task.status_id !== null
+            ? await getStatusNameForProject(parsed.project_id, task.status_id)
+            : typeof task.status === "string"
+              ? task.status
+              : "feedback";
         const priority = getPriorityName(task.priority_id);
         const debugInfo = result._debug
           ? `\n\n---\n**Debug:**\n\`\`\`json\n${JSON.stringify(result._debug, null, 2)}\n\`\`\``
@@ -1554,7 +1654,17 @@ ${pageUrl}
           content: [
             {
               type: "text" as const,
-              text: `✅ Task #${task.local_task_id} updated!\n\n**Status:** ${status}\n**Priority:** ${priority}\n\n[View in BugHerd](${task.admin_link})${debugInfo}`,
+               text: (() => {
+                 const viewLink =
+                   task.admin_link ||
+                   (task.project_id && task.local_task_id
+                     ? `https://www.bugherd.com/projects/${task.project_id}/tasks/${task.local_task_id}`
+                     : "");
+                 const viewLine = viewLink
+                   ? `\n\n[View in BugHerd](${viewLink})`
+                   : "";
+                 return `✅ Task #${task.local_task_id} updated!\n\n**Status:** ${status}\n**Priority:** ${priority}${viewLine}${debugInfo}`;
+               })(),
             },
           ],
         };
@@ -1578,11 +1688,11 @@ ${pageUrl}
           };
         }
         const columnList = columns
-          .sort((a, b) => a.position - b.position)
-          .map(
-            (col) =>
-              `- **${col.name}** (ID: ${col.id}, Position: ${col.position})`,
-          )
+          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+          .map((col) => {
+            const pos = col.position ?? "n/a";
+            return `- **${col.name}** (ID: ${col.id}, Position: ${pos})`;
+          })
           .join("\n");
         return {
           content: [
@@ -1602,7 +1712,7 @@ ${pageUrl}
           content: [
             {
               type: "text" as const,
-              text: `## Column: ${col.name}\n\n**ID:** ${col.id}\n**Position:** ${col.position}`,
+               text: `## Column: ${col.name}\n\n**ID:** ${col.id}\n**Position:** ${col.position ?? "n/a"}`, 
             },
           ],
         };
@@ -1663,9 +1773,10 @@ ${pageUrl}
           };
         }
         const commentList = comments
-          .map(
-            (c) => `**${c.user.display_name}** (${c.created_at}):\n> ${c.text}`,
-          )
+          .map((c) => {
+            const author = c.user?.display_name ?? `User ${c.user_id}`;
+            return `**${author}** (${c.created_at}):\n> ${c.text}`;
+          })
           .join("\n\n---\n\n");
         return {
           content: [
@@ -1714,10 +1825,12 @@ ${pageUrl}
           };
         }
         const attachmentList = attachments
-          .map(
-            (a) =>
-              `- **${a.file_name}** (ID: ${a.id}, ${a.file_size} bytes)\n  URL: ${a.url}`,
-          )
+          .map((a) => {
+             const size =
+               typeof a.file_size === "number" ? `${a.file_size} bytes` : "size n/a";
+             const fileName = a.file_name ?? "(no file name)";
+             return `- **${fileName}** (ID: ${a.id}, ${size})\n  URL: ${a.url}`;
+          })
           .join("\n");
         return {
           content: [
@@ -1741,7 +1854,7 @@ ${pageUrl}
           content: [
             {
               type: "text" as const,
-              text: `## Attachment: ${a.file_name}\n\n**ID:** ${a.id}\n**Size:** ${a.file_size} bytes\n**Created:** ${a.created_at}\n**URL:** ${a.url}`,
+                text: `## Attachment: ${a.file_name ?? "(no file name)"}\n\n**ID:** ${a.id}\n**Task ID:** ${a.task_id ?? "n/a"}\n**User ID:** ${a.user_id ?? "n/a"}\n**Size:** ${typeof a.file_size === "number" ? `${a.file_size} bytes` : "n/a"}\n**Created:** ${a.created_at}\n**URL:** ${a.url}`,
             },
           ],
         };

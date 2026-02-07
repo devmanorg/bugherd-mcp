@@ -15,7 +15,9 @@ import type {
   BugherdProjectResponse,
   BugherdTasksResponse,
   BugherdTaskResponse,
+  BugherdUserTasksResponse,
   BugherdCommentsResponse,
+  BugherdComment,
   BugherdAttachmentsResponse,
   BugherdAttachmentResponse,
   BugherdWebhooksResponse,
@@ -138,7 +140,7 @@ export interface ListUserTasksOptions {
 export async function getUserTasks(
   userId: number,
   options: ListUserTasksOptions = {},
-): Promise<BugherdTasksResponse> {
+): Promise<BugherdUserTasksResponse> {
   const params = new URLSearchParams();
   if (options.status) params.set("status", options.status);
   if (options.priority) params.set("priority", options.priority);
@@ -146,7 +148,7 @@ export async function getUserTasks(
 
   const query = params.toString();
   const endpoint = `/users/${userId}/tasks.json${query ? `?${query}` : ""}`;
-  return bugherdRequest<BugherdTasksResponse>(endpoint);
+  return bugherdRequest<BugherdUserTasksResponse>(endpoint);
 }
 
 /**
@@ -353,7 +355,7 @@ export async function listTasks(
       result.tasks = result.tasks.filter(
         (task) => task.status_id === targetColumnId,
       );
-      result.meta.count = result.tasks.length;
+      result.meta = { ...(result.meta ?? { count: result.tasks.length }), count: result.tasks.length };
     }
   }
 
@@ -642,13 +644,14 @@ export async function createComment(
   projectId: number,
   taskId: number,
   data: CreateCommentData,
-): Promise<{ comment: { id: number; text: string; created_at: string } }> {
-  return bugherdRequest<{
-    comment: { id: number; text: string; created_at: string };
-  }>(`/projects/${projectId}/tasks/${taskId}/comments.json`, {
-    method: "POST",
-    body: JSON.stringify({ comment: data }),
-  });
+): Promise<{ comment: BugherdComment }> {
+  return bugherdRequest<{ comment: BugherdComment }>(
+    `/projects/${projectId}/tasks/${taskId}/comments.json`,
+    {
+      method: "POST",
+      body: JSON.stringify({ comment: data }),
+    },
+  );
 }
 
 // ============================================================================
