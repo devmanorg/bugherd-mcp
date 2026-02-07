@@ -88,7 +88,7 @@ import { getPriorityName, type BugherdWebhookEvent } from "./types/bugherd.js";
 
 const server = new Server(
   {
-    name: "bugherd-mcp",
+    name: "bugherd-admin-mcp",
     version: "0.2.0",
   },
   {

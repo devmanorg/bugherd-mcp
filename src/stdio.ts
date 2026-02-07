@@ -8,10 +8,10 @@
  * Usage:
  *   node dist/stdio.js
  *
- * The main index.ts now supports both modes:
- *   - stdio mode (default): node dist/index.js
- *   - HTTP mode: PORT=3003 node dist/index.js
+ * The admin server supports both modes:
+ *   - stdio mode (default): node dist/bugherd-admin-mcp.js
+ *   - HTTP mode: PORT=3003 node dist/bugherd-admin-mcp.js
  */
 
-// Re-export the main module which defaults to stdio when PORT is not set
-import "./index.js";
+// Re-export the admin MCP server entrypoint
+import "./bugherd-admin-mcp.js";

@@ -2,7 +2,7 @@
 
 ## Current: Dual Mode (HTTP + stdio)
 
-The BugHerd MCP server supports two transport modes:
+BugHerd MCP servers support two transport modes (admin and project worker):
 
 ### HTTP Mode (Shared - Recommended)
 
@@ -10,7 +10,7 @@ One server instance serves multiple Claude Code sessions.
 
 ```bash
 # Start HTTP server on port 3003
-PORT=3003 BUGHERD_API_KEY=your_key node dist/index.js
+PORT=3003 BUGHERD_API_KEY=your_key node dist/bugherd-admin-mcp.js
 
 # Or use the startup script
 ~/.claude/scripts/start-shared-mcps.sh
@@ -34,13 +34,20 @@ PORT=3003 BUGHERD_API_KEY=your_key node dist/index.js
 }
 ```
 
+### Project worker
+
+Project worker server supports the same transports.
+
+- Entrypoint: `dist/bugherd-project-worker-mcp.js`
+- Extra env: `BUGHERD_PROJECT_ID`, `BUGHERD_BOT_USER_ID`
+
 ### stdio Mode (Default)
 
 One process per Claude Code session (original behavior).
 
 ```bash
 # Run in stdio mode (no PORT env var)
-BUGHERD_API_KEY=your_key node dist/index.js
+BUGHERD_API_KEY=your_key node dist/bugherd-admin-mcp.js
 ```
 
 **Claude Code config (~/.claude.json):**
@@ -51,7 +58,7 @@ BUGHERD_API_KEY=your_key node dist/index.js
     "bugherd": {
       "type": "stdio",
       "command": "node",
-      "args": ["/path/to/dist/index.js"],
+      "args": ["/path/to/dist/bugherd-admin-mcp.js"],
       "env": {
         "BUGHERD_API_KEY": "your_key"
       }
@@ -77,7 +84,7 @@ If you need to revert to stdio-only mode:
    "bugherd": {
      "type": "stdio",
      "command": "node",
-     "args": ["/Users/berckan/Dev/Personal/bugherd-mcp/dist/index.js"],
+     "args": ["/path/to/dist/bugherd-admin-mcp.js"],
      "env": {
        "BUGHERD_API_KEY": "your_key"
      }

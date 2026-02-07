@@ -4,7 +4,7 @@ MCP (Model Context Protocol) servers for working with BugHerd from AI clients.
 
 This repo ships two entrypoints:
 
-## Full server: `bugherd-mcp`
+## Admin server: `bugherd-admin-mcp`
 
 - Broad BugHerd API v2 coverage (projects, tasks, columns, comments, attachments, webhooks)
 - Transports: stdio (default) and HTTP/SSE (shared mode)
@@ -12,9 +12,9 @@ This repo ships two entrypoints:
 
 Transport details: see `TRANSPORT.md`.
 
-## Restricted server: `bugherd-mcp-restricted`
+## Project worker server: `bugherd-project-worker-mcp`
 
-Designed for an AI client that must operate inside a single project.
+Designed for an AI client that operates inside a single project.
 
 - Project scope is fixed by `BUGHERD_PROJECT_ID` (the client never needs it)
 - Only a small, task-focused tool surface
@@ -22,18 +22,18 @@ Designed for an AI client that must operate inside a single project.
 - Task updates are limited to status moves only
 - Output is truncated to reduce context overflow
 
-### Restricted tools
+### Project worker tools
 
 - `columns_list` — list project columns with `id` and `name`
 - `tasks_list` — list tasks (max 30 per call) + pagination cursors
-- `task_get` — task details by `local_task_id` (description truncated)
+- `task_get` — task details by `local_task_id` (description chunk + `description_next_cursor`)
 - `task_description_more` — aux: read long description in chunks (`next_cursor`)
 - `task_move_status` — move task to a column by `to_column_id`
 - `comments_list` — list comments (max 30 per call) + pagination cursors
 - `comment_text_more` — aux: read long comment text in chunks (`next_cursor`)
 - `comment_add` — add a comment as `BUGHERD_BOT_USER_ID`
 
-### Restricted resources
+### Project worker resources
 
 - `bugherd://columns` — JSON with columns and config hints
 
@@ -53,7 +53,7 @@ npm run build
 
 ## Configuration
 
-### Full server (stdio)
+### Admin server (stdio)
 
 ```json
 {
@@ -61,7 +61,7 @@ npm run build
     "bugherd": {
       "type": "stdio",
       "command": "node",
-      "args": ["/path/to/bugherd-mcp/dist/index.js"],
+      "args": ["/path/to/bugherd-mcp/dist/bugherd-admin-mcp.js"],
       "env": {
         "BUGHERD_API_KEY": "your-api-key"
       }
@@ -70,7 +70,7 @@ npm run build
 }
 ```
 
-### Restricted server (stdio)
+### Project worker server (stdio)
 
 ```json
 {
@@ -78,11 +78,11 @@ npm run build
     "bugherd": {
       "type": "stdio",
       "command": "node",
-      "args": ["/path/to/bugherd-mcp/dist/restricted.js"],
+      "args": ["/path/to/bugherd-mcp/dist/bugherd-project-worker-mcp.js"],
       "env": {
         "BUGHERD_API_KEY": "your-api-key",
-        "BUGHERD_PROJECT_ID": "12345",
-        "BUGHERD_BOT_USER_ID": "67890",
+        "BUGHERD_PROJECT_ID": "your-project-id-here",
+        "BUGHERD_BOT_USER_ID": "your-bot-user-id-here",
         "BUGHERD_DESCRIPTION_MAX_CHARS": "4000",
         "BUGHERD_COMMENT_MAX_CHARS": "2000",
         "BUGHERD_ACTIVE_COLUMN_IDS": ""
@@ -100,6 +100,6 @@ Notes:
 ## Development
 
 ```bash
-bun run src/index.ts
-bun run src/restricted.ts
+bun run src/bugherd-admin-mcp.ts
+bun run src/bugherd-project-worker-mcp.ts
 ```

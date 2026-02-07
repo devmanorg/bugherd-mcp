@@ -2,20 +2,21 @@
 
 ## Entrypoints
 
-### Full MCP server
+### Admin MCP server
 
-- CLI/bin: `bugherd-mcp`
-- Node entrypoint: `dist/index.js`
-- Source: `src/index.ts`
+- CLI/bin: `bugherd-admin-mcp`
+- Node entrypoint: `dist/bugherd-admin-mcp.js`
+- Source: `src/bugherd-admin-mcp.ts`
 - Modes:
   - stdio (default)
   - HTTP/SSE when `PORT` is set
 
-### Restricted MCP server (project-scoped)
+### Project worker MCP server (project-scoped)
 
-- CLI/bin: `bugherd-mcp-restricted`
-- Node entrypoint: `dist/restricted.js`
-- Source: `src/restricted.ts`
+- CLI/bin: `bugherd-project-worker-mcp`
+- Node entrypoint: `dist/bugherd-project-worker-mcp.js`
+- Source: `src/bugherd-project-worker-mcp.ts`
+
 - Scope:
   - fixed project via `BUGHERD_PROJECT_ID`
   - bot identity via `BUGHERD_BOT_USER_ID`
@@ -29,7 +30,7 @@
 
 - `npm run build` (emits `dist/*`)
 
-## Env (restricted)
+## Env (project worker)
 
 Required:
 
@@ -53,10 +54,10 @@ All env vars are validated locally at startup (see `src/config.ts`).
 - Pass variables explicitly via `--env`.
 - Also pass `--cwd` to avoid path surprises.
 
-### Start (restricted)
+### Start (project worker)
 
 ```bash
-mcp-cmd start bugherd-restricted node dist/restricted.js \
+mcp-cmd start bugherd-project-worker node dist/bugherd-project-worker-mcp.js \
   --cwd /path/to/bugherd-mcp \
   --env BUGHERD_API_KEY=$BUGHERD_API_KEY \
   --env BUGHERD_PROJECT_ID=$BUGHERD_PROJECT_ID \
@@ -66,7 +67,7 @@ mcp-cmd start bugherd-restricted node dist/restricted.js \
 ### Introspect tools
 
 ```bash
-mcp-cmd tools bugherd-restricted
+mcp-cmd tools bugherd-project-worker
 ```
 
 ### Call a tool
@@ -74,19 +75,19 @@ mcp-cmd tools bugherd-restricted
 Pass JSON args as a single string:
 
 ```bash
-mcp-cmd call bugherd-restricted tasks_list '{"sort":"api","scope":"taskboard"}'
-mcp-cmd call bugherd-restricted task_get '{"local_task_id":123}'
+mcp-cmd call bugherd-project-worker tasks_list '{"sort":"api","scope":"taskboard"}'
+mcp-cmd call bugherd-project-worker task_get '{"local_task_id":123}'
 ```
 
 ### Stop
 
 ```bash
-mcp-cmd stop bugherd-restricted
+mcp-cmd stop bugherd-project-worker
 ```
 
 ### Debug running servers
 
 ```bash
 mcp-cmd ps
-mcp-cmd ps bugherd-restricted
+mcp-cmd ps bugherd-project-worker
 ```
