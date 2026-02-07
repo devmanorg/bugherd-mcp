@@ -2,8 +2,8 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json bun.lock ./
-RUN npm install --frozen-lockfile 2>/dev/null || npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY tsconfig.json ./
 COPY src ./src
@@ -14,8 +14,8 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install --omit=dev
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
 

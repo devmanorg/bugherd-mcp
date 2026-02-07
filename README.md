@@ -40,7 +40,7 @@ Designed for an AI client that operates inside a single project.
 
 Prereqs:
 
-- Node.js 18+ or Bun
+- Node.js 18+
 - BugHerd API key (`BUGHERD_API_KEY`)
 
 ### Recommended: Use `npx` (no install)
@@ -158,7 +158,22 @@ Notes:
 
 ## Development
 
+Install deps:
+
 ```bash
-bun run src/bugherd-admin-mcp.ts
-bun run src/bugherd-project-worker-mcp.ts
+npm ci
+```
+
+Run with auto-reload on changes:
+
+```bash
+npm run dev:mcp:admin
+npm run dev:mcp:project-worker
+```
+
+HTTP/SSE mode (handy for debugging):
+
+```bash
+npm run dev:mcp:admin:http
+npm run dev:mcp:project-worker:http
 ```
