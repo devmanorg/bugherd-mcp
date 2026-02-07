@@ -27,12 +27,6 @@ const EnvSchema = z.object({
     .int("BUGHERD_DESCRIPTION_MAX_CHARS must be an integer")
     .positive("BUGHERD_DESCRIPTION_MAX_CHARS must be > 0")
     .optional(),
-  BUGHERD_COMMENT_MAX_CHARS: z
-    .coerce
-    .number()
-    .int("BUGHERD_COMMENT_MAX_CHARS must be an integer")
-    .positive("BUGHERD_COMMENT_MAX_CHARS must be > 0")
-    .optional(),
 
   // Comment signature (optional)
   BUGHERD_AGENT_SIGNATURE: z.string().optional(),
@@ -57,7 +51,6 @@ export interface BugherdEnv {
   botUserId: number;
   pageSize: number;
   descriptionMaxChars: number;
-  commentMaxChars: number;
   agentSignature: string | null;
   agentSignatureSeparator: string;
   activeColumnIds: number[] | null;
@@ -73,7 +66,6 @@ export function loadEnvOrExit(): BugherdEnv {
 
   const pageSize = parsed.data.BUGHERD_PAGE_SIZE ?? 30;
   const descriptionMaxChars = parsed.data.BUGHERD_DESCRIPTION_MAX_CHARS ?? 4000;
-  const commentMaxChars = parsed.data.BUGHERD_COMMENT_MAX_CHARS ?? 2000;
   const agentSignature = parsed.data.BUGHERD_AGENT_SIGNATURE?.trim()
     ? parsed.data.BUGHERD_AGENT_SIGNATURE
     : null;
@@ -107,7 +99,6 @@ export function loadEnvOrExit(): BugherdEnv {
     botUserId: parsed.data.BUGHERD_BOT_USER_ID,
     pageSize,
     descriptionMaxChars,
-    commentMaxChars,
     agentSignature,
     agentSignatureSeparator,
     activeColumnIds,

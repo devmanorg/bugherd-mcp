@@ -186,20 +186,17 @@ const MoveTaskSchema = z.object({
 });
 const AddCommentSchema = z.object({
     local_task_id: z.number().int().positive().describe("Local task id (#123)"),
-    text: z.string().min(1).describe("Comment text"),
+    text: z
+        .string()
+        .min(1)
+        .max(2000)
+        .describe("Comment text (max 2000 chars due to BugHerd API)"),
 });
 const ListCommentsSchema = z.object({
     local_task_id: z.number().int().positive().describe("Local task id (#123)"),
     page: z.number().int().positive().optional().describe("1-based page"),
     cursor: z
         .union([PageCursorSchema, z.number().int().positive(), z.string().regex(/^\d+$/)])
-        .optional(),
-});
-const CommentTextMoreSchema = z.object({
-    local_task_id: z.number().int().positive().describe("Local task id (#123)"),
-    comment_id: z.number().int().positive().describe("Comment id"),
-    cursor: z
-        .union([TextCursorSchema, z.number().int().nonnegative(), z.string().regex(/^\d+$/)])
         .optional(),
 });
 // Tool definitions
@@ -286,19 +283,6 @@ const TOOLS = [
                 cursor: { type: ["string", "number"], description: "Opaque cursor from previous response (or numeric page)" },
             },
             required: ["local_task_id"],
-        },
-    },
-    {
-        name: "comment_text_more",
-        description: "Aux tool: read a long comment text in chunks. Returns next_cursor when more is available.",
-        inputSchema: {
-            type: "object",
-            properties: {
-                local_task_id: { type: "number" },
-                comment_id: { type: "number" },
-                cursor: { type: ["string", "number"], description: "Opaque cursor from previous chunk (or numeric offset)" },
-            },
-            required: ["local_task_id", "comment_id"],
         },
     },
     {
@@ -625,8 +609,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 const slice = comments.slice(start, end);
                 const items = slice.map((c) => {
                     const author = c.user?.display_name ?? `user:${c.user_id}`;
-                    const text = truncate(c.text, Math.min(env.commentMaxChars, 300)).text;
-                    return `- id:${c.id} | ${author} | ${c.created_at}\n  ${text}`;
+                    return `- id:${c.id} | ${author} | ${c.created_at}\n  ${c.text}`;
                 });
                 const cursor = encodePageCursor({ page });
                 const nextPage = end < comments.length ? page + 1 : null;
@@ -650,47 +633,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     ],
                 };
             }
-            case "comment_text_more": {
-                const parsed = CommentTextMoreSchema.parse(args);
-                const taskResult = await getTaskByLocalId(env.projectId, parsed.local_task_id);
-                const task = taskResult.task;
-                const result = await listComments(env.projectId, task.id);
-                const comment = result.comments.find((c) => c.id === parsed.comment_id);
-                if (!comment) {
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: `Error: Comment ${parsed.comment_id} not found on task #${task.local_task_id}.`,
-                            },
-                        ],
-                        isError: true,
-                    };
-                }
-                const author = comment.user?.display_name ?? `user:${comment.user_id}`;
-                const offset = parsed.cursor ? decodeTextCursor(parsed.cursor).offset : 0;
-                const { chunk, nextOffset, nextCursor } = textChunk(comment.text, offset, env.commentMaxChars);
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: `## Comment ${comment.id} on Task #${task.local_task_id} (chunk)\n\n` +
-                                `author: ${author}\n` +
-                                `created: ${comment.created_at}\n` +
-                                `offset: ${offset}\n` +
-                                (nextOffset !== null ? `next_offset: ${nextOffset}\n` : "") +
-                                (nextCursor ? `next_cursor: ${nextCursor}\n` : "") +
-                                `\n${chunk}`,
-                        },
-                    ],
-                };
-            }
             case "comment_add": {
                 const parsed = AddCommentSchema.parse(args);
                 const taskResult = await getTaskByLocalId(env.projectId, parsed.local_task_id);
                 const task = taskResult.task;
+                const textWithSignature = applyAgentSignature(parsed.text);
+                if (textWithSignature.length > 2000) {
+                    throw new Error(
+                        `Comment too long after signature (${textWithSignature.length}/2000). Shorten the comment or signature.`,
+                    );
+                }
                 const created = await createComment(env.projectId, task.id, {
-                    text: applyAgentSignature(parsed.text),
+                    text: textWithSignature,
                     user_id: env.botUserId,
                 });
                 return {

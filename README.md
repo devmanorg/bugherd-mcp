@@ -30,8 +30,7 @@ Designed for an AI client that operates inside a single project.
 - `task_description_more` — aux: read long description in chunks (`next_cursor` or numeric `offset`)
 - `task_move_status` — move task to a column by `to_column_id`
 - `comments_list` — list comments (max `BUGHERD_PAGE_SIZE` per call) + pagination cursors
-- `comment_text_more` — aux: read long comment text in chunks (`next_cursor` or numeric `offset`)
-- `comment_add` — add a comment as `BUGHERD_BOT_USER_ID`
+- `comment_add` — add a comment as `BUGHERD_BOT_USER_ID` (max 2000 chars)
 
 ### Project worker resources
 
@@ -85,7 +84,6 @@ npm run build
         "BUGHERD_BOT_USER_ID": "your-bot-user-id-here",
         "BUGHERD_PAGE_SIZE": "30",
         "BUGHERD_DESCRIPTION_MAX_CHARS": "4000",
-        "BUGHERD_COMMENT_MAX_CHARS": "2000",
         "BUGHERD_AGENT_SIGNATURE": "",
         "BUGHERD_AGENT_SIGNATURE_SEPARATOR": "\\n\\n---\\n",
         "BUGHERD_ACTIVE_COLUMN_IDS": ""

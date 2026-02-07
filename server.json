@@ -45,13 +45,6 @@
           "name": "BUGHERD_DESCRIPTION_MAX_CHARS"
         },
         {
-          "description": "(Project worker) Max chars returned for comment text",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false,
-          "name": "BUGHERD_COMMENT_MAX_CHARS"
-        },
-        {
           "description": "(Project worker) Optional comma-separated active column ids",
           "isRequired": false,
           "format": "string",
