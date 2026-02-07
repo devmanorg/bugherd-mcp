@@ -7,7 +7,6 @@
   "main": "dist/bugherd-admin-mcp.js",
   "files": [
     "dist",
-    "server.json",
     "README.md",
     "LICENSE"
   ],
