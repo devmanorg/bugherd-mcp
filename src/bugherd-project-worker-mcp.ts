@@ -62,23 +62,49 @@ function encodePageCursor(value) {
     return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 function decodePageCursor(cursor) {
-    if (typeof cursor === "number") {
-        return { page: cursor };
+    const numeric =
+        typeof cursor === "number"
+            ? cursor
+            : typeof cursor === "string" && /^\d+$/.test(cursor)
+                ? Number(cursor)
+                : null;
+    if (numeric !== null) {
+        return { page: numeric };
     }
-    const raw = Buffer.from(cursor, "base64url").toString("utf8");
-    const parsed = JSON.parse(raw);
-    return z.object({ page: z.number().int().positive() }).parse(parsed);
+    try {
+        const raw = Buffer.from(cursor, "base64url").toString("utf8");
+        const parsed = JSON.parse(raw);
+        return z.object({ page: z.number().int().positive() }).parse(parsed);
+    }
+    catch {
+        throw new Error(
+            "Invalid cursor. Use the cursor returned by the server, or pass a numeric page (e.g. 1).",
+        );
+    }
 }
 function encodeTextCursor(value) {
     return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 function decodeTextCursor(cursor) {
-    if (typeof cursor === "number") {
-        return { offset: cursor };
+    const numeric =
+        typeof cursor === "number"
+            ? cursor
+            : typeof cursor === "string" && /^\d+$/.test(cursor)
+                ? Number(cursor)
+                : null;
+    if (numeric !== null) {
+        return { offset: numeric };
     }
-    const raw = Buffer.from(cursor, "base64url").toString("utf8");
-    const parsed = JSON.parse(raw);
-    return z.object({ offset: z.number().int().nonnegative() }).parse(parsed);
+    try {
+        const raw = Buffer.from(cursor, "base64url").toString("utf8");
+        const parsed = JSON.parse(raw);
+        return z.object({ offset: z.number().int().nonnegative() }).parse(parsed);
+    }
+    catch {
+        throw new Error(
+            "Invalid cursor. Use next_cursor returned by the server, or pass a numeric offset (e.g. 0).",
+        );
+    }
 }
 function textChunk(text, offset, maxChars) {
     const start = Math.max(0, offset);
@@ -132,7 +158,9 @@ const ListTasksSchema = z.object({
     ])
         .describe("Sort mode applied within the page"),
     page: z.number().int().positive().optional().describe("1-based page"),
-    cursor: z.union([PageCursorSchema, z.number().int().positive()]).optional(),
+    cursor: z
+        .union([PageCursorSchema, z.number().int().positive(), z.string().regex(/^\d+$/)])
+        .optional(),
     status: z
         .string()
         .optional()
@@ -148,7 +176,9 @@ const LocalTaskSchema = z.object({
 });
 const TaskDescriptionMoreSchema = z.object({
     local_task_id: z.number().int().positive().describe("Local task id (#123)"),
-    cursor: z.union([TextCursorSchema, z.number().int().nonnegative()]).optional(),
+    cursor: z
+        .union([TextCursorSchema, z.number().int().nonnegative(), z.string().regex(/^\d+$/)])
+        .optional(),
 });
 const MoveTaskSchema = z.object({
     local_task_id: z.number().int().positive().describe("Local task id (#123)"),
@@ -161,12 +191,16 @@ const AddCommentSchema = z.object({
 const ListCommentsSchema = z.object({
     local_task_id: z.number().int().positive().describe("Local task id (#123)"),
     page: z.number().int().positive().optional().describe("1-based page"),
-    cursor: z.union([PageCursorSchema, z.number().int().positive()]).optional(),
+    cursor: z
+        .union([PageCursorSchema, z.number().int().positive(), z.string().regex(/^\d+$/)])
+        .optional(),
 });
 const CommentTextMoreSchema = z.object({
     local_task_id: z.number().int().positive().describe("Local task id (#123)"),
     comment_id: z.number().int().positive().describe("Comment id"),
-    cursor: z.union([TextCursorSchema, z.number().int().nonnegative()]).optional(),
+    cursor: z
+        .union([TextCursorSchema, z.number().int().nonnegative(), z.string().regex(/^\d+$/)])
+        .optional(),
 });
 // Tool definitions
 const TOOLS = [

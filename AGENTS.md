@@ -83,6 +83,17 @@ mcp-cmd call bugherd-project-worker tasks_list '{"sort":"api","scope":"taskboard
 mcp-cmd call bugherd-project-worker task_get '{"local_task_id":123}'
 ```
 
+### Cursors for long text
+
+- Use `next_cursor` returned by the tool.
+- For debugging you can also pass a numeric cursor:
+
+```bash
+mcp-cmd call bugherd-project-worker task_description_more '{"local_task_id":123,"cursor":0}'
+```
+
+If you see `Unexpected end of JSON input`, you likely passed an invalid cursor string.
+
 ### Stop
 
 ```bash

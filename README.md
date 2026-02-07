@@ -27,10 +27,10 @@ Designed for an AI client that operates inside a single project.
 - `columns_list` — list project columns with `id` and `name`
 - `tasks_list` — list tasks (max `BUGHERD_PAGE_SIZE` per call) + pagination cursors
 - `task_get` — task details by `local_task_id` (description chunk + `description_next_cursor`)
-- `task_description_more` — aux: read long description in chunks (`next_cursor`)
+- `task_description_more` — aux: read long description in chunks (`next_cursor` or numeric `offset`)
 - `task_move_status` — move task to a column by `to_column_id`
 - `comments_list` — list comments (max `BUGHERD_PAGE_SIZE` per call) + pagination cursors
-- `comment_text_more` — aux: read long comment text in chunks (`next_cursor`)
+- `comment_text_more` — aux: read long comment text in chunks (`next_cursor` or numeric `offset`)
 - `comment_add` — add a comment as `BUGHERD_BOT_USER_ID`
 
 ### Project worker resources
