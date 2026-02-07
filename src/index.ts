@@ -1881,11 +1881,39 @@ if (PORT) {
   // HTTP mode - shared server for multiple Claude sessions
   const sessions = new Map<string, SSEServerTransport>();
 
+  function isAllowedOrigin(origin: string): boolean {
+    try {
+      const parsed = new URL(origin);
+      return (
+        (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+        (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1")
+      );
+    } catch {
+      return false;
+    }
+  }
+
   const httpServer = createServer(
     async (req: IncomingMessage, res: ServerResponse) => {
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      const originHeader = req.headers.origin;
+
+      // If this is a browser request, only allow local origins.
+      // This prevents websites from talking to your local MCP HTTP server.
+      if (originHeader) {
+        const origin = Array.isArray(originHeader)
+          ? originHeader[0]
+          : originHeader;
+        if (!origin || !isAllowedOrigin(origin)) {
+          res.writeHead(403, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Forbidden origin" }));
+          return;
+        }
+
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Vary", "Origin");
+        res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      }
 
       if (req.method === "OPTIONS") {
         res.writeHead(204);
