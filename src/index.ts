@@ -46,7 +46,6 @@ import {
   listArchivedTasks,
   listTaskboardTasks,
   createTask,
-  moveTasks,
   updateTask,
   // Columns
   listColumns,
@@ -223,11 +222,6 @@ const CreateTaskSchema = z.object({
   external_id: z.string().optional().describe("External reference ID"),
 });
 
-const MoveTasksSchema = z.object({
-  project_id: z.number().describe("The source project ID"),
-  task_ids: z.array(z.number()).describe("Array of task IDs to move"),
-  destination_project_id: z.number().describe("The destination project ID"),
-});
 
 const UpdateTaskSchema = z.object({
   project_id: z.number().describe("The BugHerd project ID"),
@@ -671,26 +665,6 @@ const TOOLS = [
         external_id: { type: "string", description: "External reference ID" },
       },
       required: ["project_id", "description"],
-    },
-  },
-  {
-    name: "bugherd_move_tasks",
-    description: "Move tasks from one project to another.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        project_id: { type: "number", description: "The source project ID" },
-        task_ids: {
-          type: "array",
-          items: { type: "number" },
-          description: "Array of task IDs to move",
-        },
-        destination_project_id: {
-          type: "number",
-          description: "The destination project ID",
-        },
-      },
-      required: ["project_id", "task_ids", "destination_project_id"],
     },
   },
   {
@@ -1160,7 +1134,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const projectList = projects
           .map(
             (p) =>
-              `- **${p.name}** (ID: ${p.id})\n  URL: ${p.devurl}\n  Active: ${p.is_active ? "Yes" : "No"}`,
+              `- **${p.name}** (ID: ${p.id})\n  URL: ${p.devurl ?? "Not available"}\n  Active: ${p.is_active ? "Yes" : "No"}`, 
           )
           .join("\n\n");
         return {
@@ -1184,7 +1158,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           };
         }
         const projectList = projects
-          .map((p) => `- **${p.name}** (ID: ${p.id}) - ${p.devurl}`)
+          .map((p) => `- **${p.name}** (ID: ${p.id}) - ${p.devurl ?? "Not available"}`)
           .join("\n");
         return {
           content: [
@@ -1526,7 +1500,7 @@ ${viewLine}`.trim();
 **Tags:** ${tags}
 **Created:** ${task.created_at}
 **Updated:** ${task.updated_at}
-**Requester:** ${task.requester_email}
+**Requester:** ${task.requester_email ?? "Not available"}
 **Assigned To:** ${assignedTo}
 
 ### Description
@@ -1610,22 +1584,6 @@ ${pageUrl}
         };
       }
 
-      case "bugherd_move_tasks": {
-        const parsed = MoveTasksSchema.parse(args);
-        await moveTasks(
-          parsed.project_id,
-          parsed.task_ids,
-          parsed.destination_project_id,
-        );
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `✅ ${parsed.task_ids.length} task(s) moved from project ${parsed.project_id} to project ${parsed.destination_project_id}.`,
-            },
-          ],
-        };
-      }
 
       case "bugherd_update_task": {
         const parsed = UpdateTaskSchema.parse(args);
@@ -1730,7 +1688,7 @@ ${pageUrl}
           content: [
             {
               type: "text" as const,
-              text: `✅ Column created!\n\n**Name:** ${col.name}\n**ID:** ${col.id}\n**Position:** ${col.position}`,
+              text: `✅ Column created!\n\n**Name:** ${col.name}\n**ID:** ${col.id}\n**Position:** ${col.position ?? "n/a"}`,
             },
           ],
         };
@@ -1752,7 +1710,7 @@ ${pageUrl}
           content: [
             {
               type: "text" as const,
-              text: `✅ Column updated!\n\n**Name:** ${col.name}\n**ID:** ${col.id}\n**Position:** ${col.position}`,
+              text: `✅ Column updated!\n\n**Name:** ${col.name}\n**ID:** ${col.id}\n**Position:** ${col.position ?? "n/a"}`,
             },
           ],
         };

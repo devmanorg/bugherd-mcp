@@ -4,7 +4,7 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that 
 
 ## Features
 
-**Complete BugHerd API v2 coverage** with 38 tools across all resource types:
+**BugHerd API v2 coverage** (see notes below) across all resource types:
 
 - **Organization** - Get account details
 - **Users** - List members, guests, user tasks and projects
@@ -54,6 +54,23 @@ npm run build
 export BUGHERD_API_KEY=your-api-key-here
 ```
 
+## Known Issues
+
+### `move_tasks` API endpoint is unavailable (404)
+
+BugHerd documents a `POST /api_v2/projects/:project_id/tasks/move_tasks.json` endpoint for moving tasks between projects. In practice, this endpoint returned `404 Not Found` consistently during testing (both with and without the `.json` suffix, and with both local and global task IDs).
+
+Because of this, the MCP tool `bugherd_move_tasks` has been removed from this server.
+
+## Untested Endpoints
+
+The following tools/endpoints were not fully validated during real API testing, so behavior may vary depending on BugHerd account settings:
+
+- Projects: `bugherd_update_project`, `bugherd_delete_project`
+- Attachments: `bugherd_delete_attachment`
+- Webhooks: `bugherd_list_webhooks`, `bugherd_create_webhook`, `bugherd_delete_webhook`
+- Guests: adding by `user_id` via `bugherd_add_guest` (invite-by-email worked in testing)
+
 ## Configuration
 
 ### CLI Configuration
@@ -93,7 +110,7 @@ Add to your MCP desktop app config:
 }
 ```
 
-## Available Tools (37)
+## Available Tools (36)
 
 ### Organization
 
@@ -136,7 +153,6 @@ Add to your MCP desktop app config:
 | `bugherd_get_task_global`      | Get task by global ID                           |
 | `bugherd_get_task_by_local_id` | Get task by local ID (#123)                     |
 | `bugherd_create_task`          | Create a new task                               |
-| `bugherd_move_tasks`           | Move tasks between projects                     |
 | `bugherd_update_task`          | Update task status/priority/description         |
 
 ### Columns
@@ -185,7 +201,7 @@ Show me all critical bugs in project 12345
 
 ```
 Create a task in project 12345: "Fix the login button alignment"
-Move task 678 from project 12345 to project 67890
+(Not supported) Move task 678 from project 12345 to project 67890
 Update task 678 status to "done"
 ```
 

@@ -139,7 +139,7 @@ export interface BugherdTask {
   external_id: string | null;
 
   requester_id?: number;
-  requester_email: string;
+  requester_email: string | null;
 
   // Different endpoints / versions expose assignment differently
   assigned_to_id?: number | null;

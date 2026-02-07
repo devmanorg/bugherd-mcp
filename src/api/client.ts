@@ -460,22 +460,6 @@ export async function createTask(
   );
 }
 
-/**
- * Move tasks between projects
- */
-export async function moveTasks(
-  projectId: number,
-  taskIds: number[],
-  destinationProjectId: number,
-): Promise<void> {
-  await bugherdRequest<void>(`/projects/${projectId}/tasks/move_tasks.json`, {
-    method: "POST",
-    body: JSON.stringify({
-      task_ids: taskIds,
-      destination_project_id: destinationProjectId,
-    }),
-  });
-}
 
 export interface UpdateTaskOptions {
   status?: string; // Can be standard (backlog, todo, doing, done, closed) or custom column name
