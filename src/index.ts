@@ -1947,9 +1947,9 @@ if (PORT) {
     },
   );
 
-  httpServer.listen(PORT, () => {
-    console.error(`BugHerd MCP Server running on http://localhost:${PORT}`);
-    console.error(`  SSE endpoint: http://localhost:${PORT}/sse`);
+  httpServer.listen(PORT, "127.0.0.1", () => {
+    console.error(`BugHerd MCP Server running on http://127.0.0.1:${PORT}`);
+    console.error(`  SSE endpoint: http://127.0.0.1:${PORT}/sse`);
   });
 } else {
   // stdio mode - one process per Claude session (default)
