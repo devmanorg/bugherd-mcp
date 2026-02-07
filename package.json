@@ -1,6 +1,6 @@
 {
   "name": "bugherd-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "MCP server for BugHerd integration - manage bugs and feedback from AI assistants",
   "type": "module",
   "main": "dist/bugherd-admin-mcp.js",
