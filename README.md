@@ -43,24 +43,80 @@ Prereqs:
 - Node.js 18+ or Bun
 - BugHerd API key (`BUGHERD_API_KEY`)
 
-Install and build:
+### Recommended: Use `npx` (no install)
+
+This runs the package and executes the CLI from its `bin` entry.
+
+```bash
+# Admin server (from npm)
+BUGHERD_API_KEY=your-api-key npx -p bugherd-mcp bugherd-admin-mcp
+
+# Admin server (directly from GitHub)
+BUGHERD_API_KEY=your-api-key \
+  npx -p git+https://github.com/devmanorg/bugherd-mcp.git bugherd-admin-mcp
+
+# Project worker server (from npm)
+BUGHERD_API_KEY=your-api-key \
+BUGHERD_PROJECT_ID=123 \
+BUGHERD_BOT_USER_ID=456 \
+npx -p bugherd-mcp bugherd-project-worker-mcp
+
+# Project worker server (directly from GitHub)
+BUGHERD_API_KEY=your-api-key \
+BUGHERD_PROJECT_ID=123 \
+BUGHERD_BOT_USER_ID=456 \
+npx -p git+https://github.com/devmanorg/bugherd-mcp.git bugherd-project-worker-mcp
+```
+
+### Option B: Install locally (dev)
 
 ```bash
 npm ci
 npm run build
 ```
 
+### Option C: Install globally
+
+```bash
+npm i -g bugherd-mcp
+# or from this repo:
+# npm i -g .
+
+BUGHERD_API_KEY=your-api-key bugherd-admin-mcp
+```
+
 ## Configuration
 
+Recommended: run via `npx` so you don't need local paths.
+
 ### Admin server (stdio)
+
+From npm:
 
 ```json
 {
   "mcpServers": {
     "bugherd": {
       "type": "stdio",
-      "command": "node",
-      "args": ["/path/to/bugherd-mcp/dist/bugherd-admin-mcp.js"],
+      "command": "npx",
+      "args": ["-p", "bugherd-mcp", "bugherd-admin-mcp"],
+      "env": {
+        "BUGHERD_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+Directly from GitHub:
+
+```json
+{
+  "mcpServers": {
+    "bugherd": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-p", "git+https://github.com/devmanorg/bugherd-mcp.git", "bugherd-admin-mcp"],
       "env": {
         "BUGHERD_API_KEY": "your-api-key"
       }
@@ -76,8 +132,8 @@ npm run build
   "mcpServers": {
     "bugherd": {
       "type": "stdio",
-      "command": "node",
-      "args": ["/path/to/bugherd-mcp/dist/bugherd-project-worker-mcp.js"],
+      "command": "npx",
+      "args": ["-p", "bugherd-mcp", "bugherd-project-worker-mcp"],
       "env": {
         "BUGHERD_API_KEY": "your-api-key",
         "BUGHERD_PROJECT_ID": "your-project-id-here",
@@ -85,13 +141,15 @@ npm run build
         "BUGHERD_PAGE_SIZE": "30",
         "BUGHERD_DESCRIPTION_MAX_CHARS": "4000",
         "BUGHERD_AGENT_SIGNATURE": "",
-        "BUGHERD_AGENT_SIGNATURE_SEPARATOR": "\\n\\n---\\n", // "\\n" sequences are supported
+        "BUGHERD_AGENT_SIGNATURE_SEPARATOR": "\\n\\n---\\n",
         "BUGHERD_ACTIVE_COLUMN_IDS": ""
       }
     }
   }
 }
 ```
+
+Alternative (local build): set `command` to `node` and point `args` at `dist/*.js`.
 
 Notes:
 

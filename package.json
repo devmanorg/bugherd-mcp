@@ -5,12 +5,20 @@
   "description": "MCP server for BugHerd integration - manage bugs and feedback from AI assistants",
   "type": "module",
   "main": "dist/bugherd-admin-mcp.js",
+  "files": [
+    "dist",
+    "server.json",
+    "README.md",
+    "TRANSPORT.md",
+    "LICENSE"
+  ],
   "bin": {
     "bugherd-admin-mcp": "dist/bugherd-admin-mcp.js",
     "bugherd-project-worker-mcp": "dist/bugherd-project-worker-mcp.js"
   },
   "scripts": {
     "build": "tsc",
+    "prepare": "npm run build",
 
     "dev:mcp:admin": "bun run src/bugherd-admin-mcp.ts",
     "dev:mcp:admin:http": "PORT=3003 bun run src/bugherd-admin-mcp.ts",
